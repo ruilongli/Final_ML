@@ -1,0 +1,261 @@
+---
+title: "final"
+author: "Tom"
+date: "2023-04-01"
+output: html_document
+---
+
+# Using machine learning technique to analysis Titanic database
+
+## 1. Introduction
+
+The Titanic disaster is one of the most catastrophic maritime incidents in history. On her maiden voyage, the supposedly "unsinkable" RMS Titanic collided with an iceberg on April 15, 1912, resulting in the death of 1502 out of 2224 passengers and crew due to insufficient lifeboats.
+
+However, it is evident that certain groups of individuals had a higher chance of surviving than others, irrespective of luck. As a result, we have embarked on a machine learning project that aims to answer the question of which types of passengers were more likely to survive. This will be achieved by analyzing a range of passenger data, including their names, ages, genders, socio-economic classes, and other relevant factors.
+
+The rest of the essay will be arranged in following manner: Then we will use the prior belief to conduct feature engineerig.We will then do some exploratory data analysis to examine some prior belief we have on the correlation between features and the target variable(Survived) . Lastly, we will formulate our model with non-parametric and parametric models to analysis the data.
+
+### 1.1 The database
+
+```{r}
+# Load packages
+library(readr)
+library(ggplot2) # visualization
+library(dplyr) # data manipulation
+library(randomForest) # classification algorithm
+library(mice) # imputation
+library(caret)
+library(Amelia) # Missing Data: Missings Map
+library(ROCR) # Prediction: ROC Curve
+library(class)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+complete_df<-read_csv("train.csv")
+#test_df<-read_csv("test.csv")
+#complete_df<- bind_rows(train_df, test_df) # bind training & test data
+```
+
+```{r}
+summary(complete_df)
+```
+
+There are 1309 observations including 12 features in total in our sample. The detailed explanation for each variable is:
+
+| Variable Name | Description                       |
+|---------------|-----------------------------------|
+| Survived      | Survived (1) or died (0)          |
+| Pclass        | Passenger's class                 |
+| Name          | Passenger's name                  |
+| Sex           | Passenger's sex                   |
+| Age           | Passenger's age                   |
+| SibSp         | Number of siblings/spouses aboard |
+| Parch         | Number of parents/children aboard |
+| Ticket        | Ticket number                     |
+| Fare          | Fare                              |
+| Cabin         | Cabin                             |
+| Embarked      | Port of embarkation               |
+
+## 2. data prepossessing
+
+Here we have several prior belief:
+
+1.  There might be negative correlation between survive and age
+
+2.  there can have positive relationship between survive and family size as family members are more likely to help each other
+
+3.  Men are more likely to survive as they are physically stronger
+
+4.  People in different class will have different chance for survive
+
+### 2.1 Feature engeneering
+
+```{r}
+rare_title <- c('Dona', 'Lady', 'the Countess','Capt', 'Col', 'Don', 
+                'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer')
+complete_df<-complete_df|>
+  mutate(Title=gsub('(.*, )|(\\..*)', '',Name))|># get title from name
+  #change some non-standard or rare title
+  mutate(Title=case_when(Title %in% c("Mlle","MS")~"Miss",
+                         Title=="Mme"~"Mrs",
+                         Title %in% rare_title ~ "Rare Title",
+                         T~Title))|>
+  mutate(Surname=sapply(Name,  function(x) strsplit(x, split = '[,.]')[[1]][1]))|>#create the feature of surname
+  mutate(SizeFamily=SibSp+Parch+1)|>#family size continuous
+  mutate(ScaleFamily=case_when(SizeFamily==1~"Single",
+                               SizeFamily>1&SizeFamily<5~"small",
+                               SizeFamily>4~"large"))|>#family size discrete
+  mutate(Family=paste(Surname,SizeFamily,sep="_"))
+
+```
+
+```{r}
+plot(factor(Survived) ~ ScaleFamily, data=complete_df, col=c(8,2), ylab="Survived")
+```
+
+### 2.2 Missings
+
+```{r}
+missmap(complete_df, main="Titanic Data - Missings Map",
+        col=c("yellow", "black"), legend=FALSE)
+```
+
+for missing value in embark, there are two missing values, so that we will replace them with the mode
+
+```{r}
+complete_df<-complete_df|>
+  mutate(Embarked=case_when(is.na(Embarked)~"C",
+                            T~Embarked))
+```
+
+For missing value in age, as there are , we use a predictive imputation in dealing with it
+
+```{r}
+# Make variables factors into factors
+factor_vars <- c('PassengerId','Pclass','Sex','Embarked',
+                 'Title','Surname','ScaleFamily')
+complete_df[factor_vars] <- lapply(complete_df[factor_vars], function(x) as.factor(x))
+# Set a random seed
+set.seed(123)
+# Perform mice imputation, excluding certain less-than-useful variables:
+mdl <- mice(complete_df[, !names(complete_df) %in% c('PassengerId','Name','Ticket','Cabin','Survived',"Family")], method='rf') 
+```
+
+```{r}
+# Save the complete output 
+output <- complete(mdl)
+par(mfrow=c(1,2))
+hist(complete_df$Age, freq=F, main='Original Data', 
+  col='blue', ylim=c(0,0.04))
+hist(output$Age, freq=F, main='Output', 
+  col='lightblue', ylim=c(0,0.04))
+```
+
+```{r}
+complete_df$Age<-output$Age
+```
+
+### 2.3 Feature engineering on age
+
+here we have some prior belief that there is correlation between age and gender on survival rate, let's firstly plot it out for checking
+
+```{r}
+complete_df<-complete_df|>
+  mutate(Child=case_when(Age<18~1,
+                         Age>17~0))|>
+  mutate(Mother=case_when(Sex=="female"&Parch>0&Age>18&Title!="Miss"~1,
+                          T~0))
+```
+
+### 2.3 Exploratory Data Analysis
+
+```{r}
+ggplot(complete_df, aes(x = SizeFamily, fill = factor(Survived))) +
+  geom_bar(stat='count', position='dodge') +
+  scale_x_continuous(breaks=c(1:11)) +
+  xlab('Family Size') +
+  ylab("Count") +
+  scale_fill_discrete(name = "Survived") + 
+  ggtitle("Family Size vs Survived")
+```
+
+```{r}
+ggplot(complete_df, aes(Age, fill = factor(Survived))) + 
+  geom_histogram() + 
+  facet_grid(.~Sex)
+```
+
+```{r}
+ggplot(complete_df, aes(x = Pclass, fill = factor(Survived))) +
+  geom_bar(stat='count', position='dodge') +
+  xlab('class') +
+  ylab("Count") +
+  scale_fill_discrete(name = "Survived") + 
+  ggtitle("class vs Survived")
+```
+
+```{r}
+#graph title
+ggplot(complete_df, aes(Title,fill = factor(Survived))) +
+  geom_bar(stat = "count")+
+  xlab('Title') +
+  ylab("Count") +
+  scale_fill_discrete(name = " Survived") + 
+  ggtitle("Title vs Survived")
+```
+
+### 
+
+## 4. Machine Learning Model
+
+### 4.1 Divide data
+
+```{r}
+train_index<-sample.int(nrow(complete_df),round(0.8*nrow(complete_df)))
+train_df<-complete_df[train_index,]
+test_df<-complete_df[-train_index,]
+```
+
+### 4.2 Random Forest
+
+```{r}
+# Set a random seed
+set.seed(754)
+
+# Build the model (note: not all possible variables are used)
+rf_model <- randomForest(Survived ~ Pclass + Sex + Age + SibSp + Parch + 
+                                            Fare + Embarked + Title + 
+                                            ScaleFamily + Child + Mother,
+                                            data = train_df)
+pred_rf<-predict(rf_model,test_df[,-1])
+```
+
+remember to plot all ROC in a same plot and move this to the end
+
+```{r}
+prob_pred_RF<-predict(rf_model,test_df[,-2],type='response')
+fitpred_RF = prediction(prob_pred_RF, test_df$Survived)
+fitperf_RF = performance(fitpred_RF,"tpr","fpr")
+plot(fitperf_RF,col="green",lwd=2,main="ROC Curve")
+```
+
+```{r}
+confusionMatrix(as.factor(as.numeric(pred_rf>0.5)),as.factor(test_df[,2][[1]]))
+```
+
+### 4.3 KNN
+
+```{r}
+
+
+knn_train<-train_df[,-c(1,4,9,11,14,15,17)]|>
+  mutate_at(c("Survived","Child","Mother"),as.factor)
+knn_train<-model.matrix(Survived ~.,data = knn_train)
+knn_test<-test_df[,-c(1,4,9,11,14,15,17)]|>
+  mutate_at(c("Survived","Child","Mother"),as.factor)
+knn_test<-model.matrix(Survived ~.,data = knn_test)
+acc_test <- numeric()
+for(i in 1:30){
+    predict <- knn(train=knn_train, test=knn_test, cl=as.matrix(train_df[,2]), k=i, prob=T)
+    acc_test[i] <- mean(as.matrix(predict)==test_df[,2])
+}
+#############have not fix yet
+acc <- data.frame(k= seq(1,30), accuracy = acc_test)
+
+
+
+```
+
+```{r}
+###check this function tomrrow
+plot(acc)
+```
+
+```{r}
+pred_knn<-knn(train=knn_train, test=knn_test, cl=train_df[,2][[1]], k=12)
+confusionMatrix(as.factor(pred_knn),as.factor(test_df[,2][[1]]))
+```
+
+### 4.4 Neural Network
+
+things need to be done: Write a good story, using NN, Lasso_logistic and
