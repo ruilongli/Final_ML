@@ -74,7 +74,7 @@ Here we have several prior belief:
 rare_title <- c('Dona', 'Lady', 'the Countess','Capt', 'Col', 'Don', 
                 'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer')
 complete_df<-complete_df|>
-  mutate(Title=gsub('(.*, )|(\\..*)', '',Name))|># get title from name
+  mutate(Title=gsub('(.*, )|(\\..*)', '',Name))|># get title from name.
   #change some non-standard or rare title
   mutate(Title=case_when(Title %in% c("Mlle","MS")~"Miss",
                          Title=="Mme"~"Mrs",
