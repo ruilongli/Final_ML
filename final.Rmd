@@ -287,7 +287,7 @@ things need to be done: Write a good story, using NN, Lasso_logistic and use PCA
 ```{r}
 library(dplyr)
 train_df <- train_df %>% 
-  mutate_if(is.factor, as.numeric) #applies as.numeric() function to all columns in train_df that are of class factor
+  mutate_if(is.factor, as.numeric) # applies as.numeric() function to all columns in train_df that are of class factor
 x <- as.matrix(train_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
                       "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")])
 y <- as.matrix(train_df$Survived)
@@ -335,6 +335,22 @@ bestlam <- cv.out$lambda.min
 lasso_model <- glmnet(x, y, alpha = 1, lambda = grid)  
 lasso_coef <- predict(lasso_model, type = "coefficients", s = bestlam)
 lasso_coef
+```
+
+```{r}
+#Prediction using Lasso
+test_df <- test_df %>%  
+  mutate_if(is.factor, as.numeric)
+x_test <- as.matrix(test_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
+                          "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")])
+lasso_pred <- predict(lasso_model, s = bestlam, newx = x_test)
+
+# Compute confusion matrix and statistics
+library(caret)
+lasso_pred_binary <- ifelse(lasso_pred > 0.5, 1, 0)
+actual <- test_df$Survived
+confusionMatrix(as.factor(lasso_pred_binary), as.factor(actual))
+
 ```
 
 
