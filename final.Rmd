@@ -258,4 +258,5 @@ confusionMatrix(as.factor(pred_knn),as.factor(test_df[,2][[1]]))
 
 ### 4.4 Neural Network
 
-things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimention 
+things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimention the best method in 
+origional data.
