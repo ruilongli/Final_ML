@@ -184,7 +184,7 @@ ggplot(complete_df, aes(Title,fill = factor(Survived))) +
   ggtitle("Title vs Survived")
 ```
 
-### 
+
 
 ## 4. Machine Learning Model
 
@@ -206,7 +206,7 @@ set.seed(754)
 rf_model <- randomForest(Survived ~ Pclass + Sex + Age + SibSp + Parch + 
                                             Fare + Embarked + Title + 
                                             ScaleFamily + Child + Mother,
-                                            data = train_df)
+                                            data = train_df,importance=TRUE )
 pred_rf<-predict(rf_model,test_df[,-1])
 ```
 
@@ -222,6 +222,18 @@ plot(fitperf_RF,col="green",lwd=2,main="ROC Curve")
 ```{r}
 confusionMatrix(as.factor(as.numeric(pred_rf>0.5)),as.factor(test_df[,2][[1]]))
 ```
+
+We can show which are the most relevant variables based on Rf model and then see if the same variables are selected even in the other models
+
+```{r}
+# type 2 : mean decrease in node impurity
+importance(rf_model,type=2)
+
+# type 1 : mean decrease in accuracy
+importance(rf_model,type=1)
+```
+
+
 
 ### 4.3 KNN
 
@@ -258,4 +270,8 @@ confusionMatrix(as.factor(pred_knn),as.factor(test_df[,2][[1]]))
 
 ### 4.4 Neural Network
 
-things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimention 
+things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimension 
+
+
+
+
