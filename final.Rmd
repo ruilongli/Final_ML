@@ -183,6 +183,15 @@ ggplot(complete_df, aes(Title,fill = factor(Survived))) +
   scale_fill_discrete(name = " Survived") + 
   ggtitle("Title vs Survived")
 ```
+```{r}
+#Survived by age
+ggplot(complete_df, aes(Age,fill = factor(Survived))) +
+  geom_histogram(aes(y=..count..)) +
+  xlab('Age') +
+  ylab("Density") +
+  scale_fill_discrete(name = " Survived") + 
+  ggtitle("Survived by Age")
+```
 
 
 
