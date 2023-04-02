@@ -313,6 +313,21 @@ pred_ridge
 ```
 
 Maybe check if those predicted coefficients are similar to what we obtain in the other models (random forest etc.)
+```{r}
+#Prediction using Ridge
+test_df <- test_df %>%  
+  mutate_if(is.factor, as.numeric)
+x_test <- as.matrix(test_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
+                          "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")])
+ridge_pred <- predict(ridge_model, s = bestlam, newx = x_test)
+
+# Compute confusion matrix and statistics
+library(caret)
+ridge_pred_binary <- ifelse(ridge_pred > 0.5, 1, 0)
+actual <- test_df$Survived
+confusionMatrix(as.factor(ridge_pred_binary), as.factor(actual))
+
+```
 
 
 ### 4.5b LASSO regression
@@ -339,19 +354,15 @@ lasso_coef
 
 ```{r}
 #Prediction using Lasso
-test_df <- test_df %>%  
-  mutate_if(is.factor, as.numeric)
-x_test <- as.matrix(test_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
-                          "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")])
 lasso_pred <- predict(lasso_model, s = bestlam, newx = x_test)
 
 # Compute confusion matrix and statistics
 library(caret)
-lasso_pred_binary <- ifelse(lasso_pred > 0.5, 1, 0)
+lasso_pred_binary <- ifelse(lasso_pred > 0.5, 1,0)
 actual <- test_df$Survived
 confusionMatrix(as.factor(lasso_pred_binary), as.factor(actual))
 
 ```
 
-
+By checking the accuracy rates of Rf, KNN, Ridge and LASSO, it is clear that RF has more predictive power
 
