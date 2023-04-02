@@ -90,7 +90,8 @@ complete_df<-complete_df|>
 ```
 
 ```{r}
-plot(factor(Survived) ~ ScaleFamily, data=complete_df, col=c(8,2), ylab="Survived")
+#
+plot(factor(Survived) ~ as.factor(ScaleFamily), data=complete_df)
 ```
 
 ### 2.2 Missings
@@ -290,6 +291,7 @@ things need to be done: Write a good story, using NN, Lasso_logistic and use PCA
 
 ```{r}
 library(dplyr)
+library(glmnet)
 train_df <- train_df %>% 
   mutate_if(is.factor, as.numeric) # applies as.numeric() function to all columns in train_df that are of class factor
 x <- as.matrix(train_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
@@ -387,3 +389,26 @@ legend("bottomright", legend = c("Lasso", "Ridge"), col = c("blue", "red"), lwd 
 ```
 
 >>>>>>> 13f23b67b5d18e9e5f87916de47d853d210ea45b
+
+
+##5 PAC
+
+```{r}
+x<-complete_df|>
+  select(Survived,Pclass, Sex, Age, SibSp, Parch,Fare, Embarked, Title, ScaleFamily, Child, Mother)|>
+  mutate_at(c("Survived","Child","Mother"),as.factor)
+x<-model.matrix(Survived~.,data=x)
+x<-scale(x[,-1])
+pca_compo<-prcomp(x)
+summary(pca_compo)
+plot(pca_compo)
+```
+too further analysis the contribution of different varaibles to PC1 and PC2
+```{r}
+pca<-x %*% pca_compo$rotation
+train_df_logit<-as.data.frame(cbind(complete_df[train_index,2][[1]],pca[train_index,]))
+logit_model<-glm(as.factor(V1)~.,train_df_logit,family=binomial())
+pred_logipca<-predict(logit_model,newdata =as.data.frame(pca[-train_index,]),type = "response")
+confusionMatrix(as.factor(as.numeric(pred_logipca>0.5)),as.factor(actual))
+```
+
