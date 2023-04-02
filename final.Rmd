@@ -332,6 +332,7 @@ confusionMatrix(as.factor(ridge_pred_binary), as.factor(actual))
 
 ### 4.5b LASSO regression
 ```{r}
+library(glmnet)
 lasso_model <- glmnet(x, y, alpha = 1)
 par(mfrow=c(1,2))
 plot(lasso_model)
@@ -381,4 +382,27 @@ plot(ridge_perf_obj, add = TRUE, col = "red")
 legend("bottomright", legend = c("Lasso", "Ridge"), col = c("blue", "red"), lwd = 2)
 
 ```
+### 4.6 Logistic regression
+```{r}
+library(caret)
+library(ROCR)
+
+logistic_model <- glm(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother, data = train_df, family = binomial())
+
+logistic_pred <- predict(logistic_model, newdata = test_df, type = "response")
+
+logistic_pred_binary <- ifelse(logistic_pred > 0.5, 1, 0)
+actual <- test_df$Survived
+confusionMatrix(as.factor(logistic_pred_binary), as.factor(actual))
+```
+
+
+```{r}
+# Plot ROC curve
+logistic_pred_obj <- prediction(logistic_pred, test_df$Survived)
+logistic_perf_obj <- performance(logistic_pred_obj, "tpr", "fpr")
+plot(logistic_perf_obj, main = "ROC Curve for Logistic Regression", col = "green")
+
+```
+
 
