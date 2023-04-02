@@ -294,8 +294,6 @@ y <- as.matrix(train_df$Survived)
 ```
 
 ```{r}
-#set lambda range
-grid <- 10^seq(10, -2, length = 100)
 # Cross Validation for Ridge Regression
 set.seed(200)
 cv.out <- cv.glmnet(x, y, alpha = 0) 
@@ -316,6 +314,28 @@ pred_ridge
 
 Maybe check if those predicted coefficients are similar to what we obtain in the other models (random forest etc.)
 
+
+### 4.5b LASSO regression
+```{r}
+lasso_model <- glmnet(x, y, alpha = 1)
+par(mfrow=c(1,2))
+plot(lasso_model)
+plot(lasso_model, xvar="lambda")
+```
+Small L1 Norm -> lot of regularization.
+
+```{r}
+#Find best lambda through CV
+set.seed(200)
+cv.out <- cv.glmnet(x, y, alpha = 1)  
+plot(cv.out)
+```
+```{r}
+bestlam <- cv.out$lambda.min
+lasso_model <- glmnet(x, y, alpha = 1, lambda = grid)  
+lasso_coef <- predict(lasso_model, type = "coefficients", s = bestlam)
+lasso_coef
+```
 
 
 
