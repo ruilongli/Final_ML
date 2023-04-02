@@ -183,8 +183,17 @@ ggplot(complete_df, aes(Title,fill = factor(Survived))) +
   scale_fill_discrete(name = " Survived") + 
   ggtitle("Title vs Survived")
 ```
+```{r}
+#Survived by age
+ggplot(complete_df, aes(Age,fill = factor(Survived))) +
+  geom_histogram(aes(y=..count..)) +
+  xlab('Age') +
+  ylab("Density") +
+  scale_fill_discrete(name = " Survived") + 
+  ggtitle("Survived by Age")
+```
 
-### 
+
 
 ## 4. Machine Learning Model
 
@@ -206,7 +215,7 @@ set.seed(754)
 rf_model <- randomForest(Survived ~ Pclass + Sex + Age + SibSp + Parch + 
                                             Fare + Embarked + Title + 
                                             ScaleFamily + Child + Mother,
-                                            data = train_df)
+                                            data = train_df,importance=TRUE )
 pred_rf<-predict(rf_model,test_df[,-1])
 ```
 
@@ -222,6 +231,18 @@ plot(fitperf_RF,col="green",lwd=2,main="ROC Curve")
 ```{r}
 confusionMatrix(as.factor(as.numeric(pred_rf>0.5)),as.factor(test_df[,2][[1]]))
 ```
+
+We can show which are the most relevant variables based on Rf model and then see if the same variables are selected even in the other models
+
+```{r}
+# type 2 : mean decrease in node impurity
+importance(rf_model,type=2)
+
+# type 1 : mean decrease in accuracy
+importance(rf_model,type=1)
+```
+
+
 
 ### 4.3 KNN
 
@@ -258,5 +279,111 @@ confusionMatrix(as.factor(pred_knn),as.factor(test_df[,2][[1]]))
 
 ### 4.4 Neural Network
 
+<<<<<<< HEAD
 things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimention the best method in 
 origional data.
+=======
+things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimension 
+
+
+### 4.5a Ridge regression
+
+```{r}
+library(dplyr)
+train_df <- train_df %>% 
+  mutate_if(is.factor, as.numeric) # applies as.numeric() function to all columns in train_df that are of class factor
+x <- as.matrix(train_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
+                      "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")])
+y <- as.matrix(train_df$Survived)
+```
+
+```{r}
+# Cross Validation for Ridge Regression
+set.seed(200)
+cv.out <- cv.glmnet(x, y, alpha = 0) 
+plot(cv.out)
+```
+```{r}
+bestlam <- cv.out$lambda.min
+bestlam #gives the best lambda (min CV)
+```
+```{r}
+#run Ridge using the best lambda selected from CV
+library(glmnet)
+
+ridge_model <- glmnet(x, y, alpha = 0)
+pred_ridge <- predict(ridge_model, type = "coefficients", s = bestlam)
+pred_ridge
+```
+
+Maybe check if those predicted coefficients are similar to what we obtain in the other models (random forest etc.)
+```{r}
+#Prediction using Ridge
+test_df <- test_df %>%  
+  mutate_if(is.factor, as.numeric)
+x_test <- as.matrix(test_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
+                          "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")])
+ridge_pred <- predict(ridge_model, s = bestlam, newx = x_test)
+
+# Compute confusion matrix and statistics
+library(caret)
+ridge_pred_binary <- ifelse(ridge_pred > 0.5, 1, 0)
+actual <- test_df$Survived
+confusionMatrix(as.factor(ridge_pred_binary), as.factor(actual))
+
+```
+
+
+### 4.5b LASSO regression
+```{r}
+lasso_model <- glmnet(x, y, alpha = 1)
+par(mfrow=c(1,2))
+plot(lasso_model)
+plot(lasso_model, xvar="lambda")
+```
+Small L1 Norm -> lot of regularization.
+
+```{r}
+#Find best lambda through CV
+set.seed(200)
+cv.out <- cv.glmnet(x, y, alpha = 1)  
+plot(cv.out)
+```
+```{r}
+bestlam <- cv.out$lambda.min
+lasso_model <- glmnet(x, y, alpha = 1, lambda = grid)  
+lasso_coef <- predict(lasso_model, type = "coefficients", s = bestlam)
+lasso_coef
+```
+
+```{r}
+#Prediction using Lasso
+lasso_pred <- predict(lasso_model, s = bestlam, newx = x_test)
+
+# Compute confusion matrix and statistics
+library(caret)
+lasso_pred_binary <- ifelse(lasso_pred > 0.5, 1,0)
+actual <- test_df$Survived
+confusionMatrix(as.factor(lasso_pred_binary), as.factor(actual))
+
+```
+
+By checking the accuracy rates of Rf, KNN, Ridge and LASSO, it is clear that RF has more predictive power
+
+```{r}
+# Plot the ROC curves LASSO & Ridge
+library(ROCR)
+
+lasso_pred_obj <- prediction(lasso_pred, test_df$Survived)
+lasso_perf_obj <- performance(lasso_pred_obj, "tpr", "fpr")
+
+ridge_pred_obj <- prediction(ridge_pred, test_df$Survived)
+ridge_perf_obj <- performance(ridge_pred_obj, "tpr", "fpr")
+
+plot(lasso_perf_obj, main = "ROC Curve for Lasso and Ridge Models", col = "blue")
+plot(ridge_perf_obj, add = TRUE, col = "red")
+legend("bottomright", legend = c("Lasso", "Ridge"), col = c("blue", "red"), lwd = 2)
+
+```
+
+>>>>>>> 13f23b67b5d18e9e5f87916de47d853d210ea45b
