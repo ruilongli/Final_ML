@@ -366,3 +366,19 @@ confusionMatrix(as.factor(lasso_pred_binary), as.factor(actual))
 
 By checking the accuracy rates of Rf, KNN, Ridge and LASSO, it is clear that RF has more predictive power
 
+```{r}
+# Plot the ROC curves LASSO & Ridge
+library(ROCR)
+
+lasso_pred_obj <- prediction(lasso_pred, test_df$Survived)
+lasso_perf_obj <- performance(lasso_pred_obj, "tpr", "fpr")
+
+ridge_pred_obj <- prediction(ridge_pred, test_df$Survived)
+ridge_perf_obj <- performance(ridge_pred_obj, "tpr", "fpr")
+
+plot(lasso_perf_obj, main = "ROC Curve for Lasso and Ridge Models", col = "blue")
+plot(ridge_perf_obj, add = TRUE, col = "red")
+legend("bottomright", legend = c("Lasso", "Ridge"), col = c("blue", "red"), lwd = 2)
+
+```
+
