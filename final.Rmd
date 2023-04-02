@@ -282,5 +282,40 @@ confusionMatrix(as.factor(pred_knn),as.factor(test_df[,2][[1]]))
 things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimension 
 
 
+### 4.5a Ridge regression
+
+```{r}
+library(dplyr)
+train_df <- train_df %>% 
+  mutate_if(is.factor, as.numeric) #applies as.numeric() function to all columns in train_df that are of class factor
+x <- as.matrix(train_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
+                      "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")])
+y <- as.matrix(train_df$Survived)
+```
+
+```{r}
+#set lambda range
+grid <- 10^seq(10, -2, length = 100)
+# Cross Validation for Ridge Regression
+set.seed(200)
+cv.out <- cv.glmnet(x, y, alpha = 0) 
+plot(cv.out)
+```
+```{r}
+bestlam <- cv.out$lambda.min
+bestlam #gives the best lambda (min CV)
+```
+```{r}
+#run Ridge using the best lambda selected from CV
+library(glmnet)
+
+ridge_model <- glmnet(x, y, alpha = 0)
+pred_ridge <- predict(ridge_model, type = "coefficients", s = bestlam)
+pred_ridge
+```
+
+Maybe check if those predicted coefficients are similar to what we obtain in the other models (random forest etc.)
+
+
 
 
