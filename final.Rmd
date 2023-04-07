@@ -257,7 +257,7 @@ pred_rf<-predict(rf_model,test_df[,-1])
 
 ```{r}
 prob_pred_RF<-predict(rf_model,test_df,type='response')
-label<-test_df[,2]
+label<-test_df[,1]
 fitpred_RF<- prediction(prob_pred_RF,label)
 fitperf_RF = performance(fitpred_RF,"tpr","fpr")
 plot(fitperf_RF,col="green",lwd=2,main="ROC Curve (RF)")
