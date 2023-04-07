@@ -94,7 +94,7 @@ complete_df<-complete_df|>
   #change some non-standard or rare title
   mutate(Title=case_when(Title %in% c("Mlle","MS")~"Miss",
                          Title=="Mme"~"Mrs",
-                         Title %in% rare_title ~ "Rare Title",
+                         Title %in% rare_title ~ "RareTitle",
                          T~Title))|>
   mutate(Surname=sapply(Name,  function(x) strsplit(x, split = '[,.]')[[1]][1]))|>#create the feature of surname
   mutate(SizeFamily=SibSp+Parch+1)|>#family size continuous
@@ -146,16 +146,16 @@ mdl <- mice(complete_df[, !names(complete_df) %in% c('PassengerId','Name','Ticke
 
 ```{r}
 # Save the complete output 
-output <- complete(mdl)
+age_mice <- complete(mdl)
 par(mfrow=c(1,2))
 hist(complete_df$Age, freq=F, main='Original Data', 
   col='blue', ylim=c(0,0.04))
-hist(output$Age, freq=F, main='Output', 
+hist(age_mice$Age, freq=F, main='Output', 
   col='lightblue', ylim=c(0,0.04))
 ```
 
 ```{r}
-complete_df$Age<-output$Age
+complete_df$Age<-age_mice$Age
 ```
 
 ### 2.3 Feature engineering on age
@@ -224,6 +224,12 @@ ggplot(complete_df, aes(Title,fill = factor(Survived))) +
 
 
 ## 4. Machine Learning Model
+```{r}
+complete_df<-complete_df|>
+  mutate_at(c("Pclass","Sex","Embarked","Title","ScaleFamily","Child","Mother"),as.factor)|>
+  select(Survived,Pclass,Sex,Age,SibSp,Parch,Fare,Embarked,Title,ScaleFamily,Child,Mother)
+```
+
 
 Our study aims to predict the survival rates of Titanic passengers by identifying the variables that have the greatest impact on survival. To achieve this, we begin by dividing the data into two datasets: 80% of the sample will be used for training, and the remaining 20% for testing purposes.
 
@@ -244,23 +250,21 @@ We start by analyzing Random Forest model first: we run the rf_model and store t
 set.seed(754)
 
 # Build the model (note: not all possible variables are used)
-rf_model <- randomForest(Survived ~ Pclass + Sex + Age + SibSp + Parch + 
-                                            Fare + Embarked + Title + 
-                                            ScaleFamily + Child + Mother,
-                                            data = train_df,importance=TRUE )
+rf_model <- randomForest(Survived ~ .,data = train_df,importance=TRUE )
 pred_rf<-predict(rf_model,test_df[,-1])
 ```
 
 
 ```{r}
-prob_pred_RF<-predict(rf_model,test_df[,-2],type='response')
-fitpred_RF = prediction(prob_pred_RF, test_df$Survived)
+prob_pred_RF<-predict(rf_model,test_df,type='response')
+label<-test_df[,2]
+fitpred_RF<- prediction(prob_pred_RF,label)
 fitperf_RF = performance(fitpred_RF,"tpr","fpr")
 plot(fitperf_RF,col="green",lwd=2,main="ROC Curve (RF)")
 ```
 
 ```{r}
-confusionMatrix(as.factor(as.numeric(pred_rf>0.5)),as.factor(test_df[,2][[1]]))
+confusionMatrix(pred_rf,test_df$Survived)
 ```
 
 ```{r}
@@ -283,21 +287,16 @@ ggplot(var_imp_df, aes(x = reorder(variable, importance), y = importance)) +
 
 ```{r}
 
-knn_train<-train_df[,-c(1,4,9,11,14,15,17)]|>
-  mutate_at(c("Survived","Child","Mother"),as.factor)
-knn_train<-model.matrix(Survived ~.,data = knn_train)
-knn_test<-test_df[,-c(1,4,9,11,14,15,17)]|>
-  mutate_at(c("Survived","Child","Mother"),as.factor)
-knn_test<-model.matrix(Survived ~.,data = knn_test)
+
+knn_train<-model.matrix(Survived ~.,data = train_df)[,-1]
+knn_test<-model.matrix(Survived ~.,data = test_df)[,-1]
 acc_test <- numeric()
 for(i in 1:30){
-    predict <- knn(train=knn_train, test=knn_test, cl=as.matrix(train_df[,2]), k=i, prob=T)
-    acc_test[i] <- mean(as.matrix(predict)==test_df[,2])
+    predict <- knn(train=knn_train, test=knn_test, cl=train_df[,1][[1]], k=i, prob=T)
+    acc_test[i] <- mean(as.matrix(predict)==test_df[,1])
 }
 #############have not fix yet
 acc <- data.frame(k= seq(1,30), accuracy = acc_test)
-
-
 
 ```
 
@@ -307,31 +306,28 @@ plot(acc)
 ```
 
 ```{r}
-pred_knn<-knn(train=knn_train, test=knn_test, cl=train_df[,2][[1]], k=12)
-confusionMatrix(as.factor(pred_knn),as.factor(test_df[,2][[1]]))
+pred_knn<-knn(train=knn_train, test=knn_test, cl=train_df[,1][[1]], k=6)
+confusionMatrix(as.factor(pred_knn),as.factor(test_df[,1][[1]]))
 ```
 
 ### 4.4 Neural Network
+problem with NN
 
 ```{r}
-
 library(neuralnet)
-train_df <- train_df %>% 
-  mutate_if(is.factor, as.numeric)
-test_df <- test_df %>%  
-  mutate_if(is.factor, as.numeric)
 
-formula <- as.formula("Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother")
 
+formula <- as.formula("Survived1 ~ .")
+nn_data<-as.data.frame(model.matrix(~.,train_df)[,-1])
 nn_model <- neuralnet(
-  formula,
-  data = train_df,
-  hidden = c(4, 2), # two hidden layers with 4 and 2 neurons respectively
+  Survived1 ~ .,
+  data = nn_data,
+  hidden = c(8, 2), # two hidden layers with 4 and 2 neurons respectively
   threshold = 0.01, 
   act.fct = "logistic" 
 )
 # Make predictions on the test data
-nn_pred <- compute(nn_model, as.matrix(test_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")]))
+nn_pred <- predict(nn_model,as.data.frame(model.matrix(~.,train_df)[,-1]))
 
 # Convert the predicted probabilities into binary classification
 nn_pred_class <- ifelse(nn_pred$net.result > 0.5, 1, 0)
@@ -339,10 +335,6 @@ nn_pred_class <- ifelse(nn_pred$net.result > 0.5, 1, 0)
 confusionMatrix(as.factor(nn_pred_class), as.factor(test_df$Survived))
 ```
 
-<<<<<<< HEAD
-things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimention the best method in 
-origional data.
-=======
 things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimension 
 
 
@@ -351,44 +343,31 @@ things need to be done: Write a good story, using NN, Lasso_logistic and use PCA
 ```{r}
 library(dplyr)
 library(glmnet)
-train_df <- train_df %>% 
-  mutate_if(is.factor, as.numeric) # applies as.numeric() function to all columns in train_df that are of class factor
-x <- as.matrix(train_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
-                      "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")])
-y <- as.matrix(train_df$Survived)
+
 ```
 
 ```{r}
 # Cross Validation for Ridge Regression
 set.seed(200)
-cv.out <- cv.glmnet(x, y, alpha = 0) 
-plot(cv.out)
-```
-```{r}
+cv.out <- cv.glmnet(knn_train, train_df[,1][[1]], family="binomial",alpha = 0) 
 bestlam <- cv.out$lambda.min
-bestlam #gives the best lambda (min CV)
+ridge_model <- glmnet(knn_train, train_df[,1][[1]], family="binomial",alpha = 0,lambda =bestlam )
+pred_ridge <- predict(ridge_model, knn_test,type="response")
 ```
 ```{r}
 #run Ridge using the best lambda selected from CV
 library(glmnet)
 
-ridge_model <- glmnet(x, y, alpha = 0)
-pred_ridge <- predict(ridge_model, type = "coefficients", s = bestlam)
-pred_ridge
+
 ```
 
 
 ```{r}
-#Prediction using Ridge
-test_df <- test_df %>%  
-  mutate_if(is.factor, as.numeric)
-x_test <- as.matrix(test_df[, c("Pclass", "Sex", "Age", "SibSp", "Parch", 
-                          "Fare", "Embarked", "Title", "ScaleFamily", "Child", "Mother")])
-ridge_pred <- predict(ridge_model, s = bestlam, newx = x_test)
+
 
 # Compute confusion matrix and statistics
 library(caret)
-ridge_pred_binary <- ifelse(ridge_pred > 0.5, 1, 0)
+ridge_pred_binary <- ifelse(pred_ridge> 0.5, 1, 0)
 actual <- test_df$Survived
 confusionMatrix(as.factor(ridge_pred_binary), as.factor(actual))
 
@@ -398,7 +377,7 @@ confusionMatrix(as.factor(ridge_pred_binary), as.factor(actual))
 ### 4.5b LASSO regression
 ```{r}
 library(glmnet)
-lasso_model <- glmnet(x, y, alpha = 1)
+lasso_model <- glmnet(knn_train, as.numeric(train_df[,1][[1]]), alpha = 1)
 par(mfrow=c(1,2))
 plot(lasso_model)
 plot(lasso_model, xvar="lambda")
@@ -408,19 +387,17 @@ Small L1 Norm -> lot of regularization.
 ```{r}
 #Find best lambda through CV
 set.seed(200)
-cv.out <- cv.glmnet(x, y, alpha = 1)  
+cv.out <- cv.glmnet(knn_train, train_df[,1][[1]],family="binomial", alpha = 1)  
 plot(cv.out)
 ```
 ```{r}
 bestlam <- cv.out$lambda.min
-lasso_model <- glmnet(x, y, alpha = 1, lambda = grid)  
-lasso_coef <- predict(lasso_model, type = "coefficients", s = bestlam)
-lasso_coef
+lasso_model <- glmnet(knn_train, as.numeric(train_df[,1][[1]]), family = "binomial",alpha = 1, lambda = bestlam )  
 ```
 
 ```{r}
 #Prediction using Lasso
-lasso_pred <- predict(lasso_model, s = bestlam, newx = x_test)
+lasso_pred <- predict(lasso_model, newx = knn_test,type="response")
 
 # Compute confusion matrix and statistics
 library(caret)
@@ -439,7 +416,7 @@ library(ROCR)
 lasso_pred_obj <- prediction(lasso_pred, test_df$Survived)
 lasso_perf_obj <- performance(lasso_pred_obj, "tpr", "fpr")
 
-ridge_pred_obj <- prediction(ridge_pred, test_df$Survived)
+ridge_pred_obj <- prediction(pred_ridge, test_df$Survived)
 ridge_perf_obj <- performance(ridge_pred_obj, "tpr", "fpr")
 
 plot(lasso_perf_obj, main = "ROC Curve for Lasso and Ridge Models", col = "blue")
@@ -447,33 +424,6 @@ plot(ridge_perf_obj, add = TRUE, col = "red")
 legend("bottomright", legend = c("Lasso", "Ridge"), col = c("blue", "red"), lwd = 2)
 
 ```
-### 4.6 Logistic regression
-```{r}
-library(caret)
-library(ROCR)
-
-logistic_model <- glm(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother, data = train_df, family = binomial())
-
-logistic_pred <- predict(logistic_model, newdata = test_df, type = "response")
-
-logistic_pred_binary <- ifelse(logistic_pred > 0.5, 1, 0)
-actual <- test_df$Survived
-confusionMatrix(as.factor(logistic_pred_binary), as.factor(actual))
-```
-
-
-```{r}
-# Plot ROC curve
-logistic_pred_obj <- prediction(logistic_pred, test_df$Survived)
-logistic_perf_obj <- performance(logistic_pred_obj, "tpr", "fpr")
-plot(logistic_perf_obj, main = "ROC Curve for Logistic Regression", col = "green")
-
-```
-
-
->>>>>>> 13f23b67b5d18e9e5f87916de47d853d210ea45b
-
-
 ##5 PCA
 
 ```{r}
