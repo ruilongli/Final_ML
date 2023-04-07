@@ -81,10 +81,12 @@ Throughout the study we will try to confirm or give new insights on the followin
 However, before starting diving into data analysis, we must standardise some of the variables and deal with missing values. The next two sections will deal with Feauture engeneering and Missing values
 
 ### 2.1 Feature engeneering
-We first manipulate the 'complete_df' data frame by creating new variables. Specifically we are performing the following operations
+We first manipulate the 'complete_df' data frame by creating new variables. Specifically we are performing the following operations:
 - extracting the title from the variable Name, and creating the new variable 'Title'
 - extracting the surname from the variable Name, and creating the new variable 'Surname'
--
+- creating a new variable called 'SizeFamily'
+- creating a new variable called ScaleFamily by categorizing SizeFamily into "Single", "small", or "large" based on the number of family members
+- creating a new variable called Family by concatenating Surname and SizeFamily
 
 ```{r}
 rare_title <- c('Dona', 'Lady', 'the Countess','Capt', 'Col', 'Don', 
@@ -106,7 +108,7 @@ complete_df<-complete_df|>
 ```
 
 ```{r}
-#
+# SHOULD WE INCLUDE THIS PLOT IN THE Exploratory Data Analysis ?
 plot(factor(Survived) ~ as.factor(ScaleFamily), data=complete_df)
 ```
 
@@ -316,21 +318,20 @@ problem with NN
 ```{r}
 library(neuralnet)
 
-
-formula <- as.formula("Survived1 ~ .")
-nn_data<-as.data.frame(model.matrix(~.,train_df)[,-1])
+nn_data_scaled <- 
 nn_model <- neuralnet(
-  Survived1 ~ .,
-  data = nn_data,
-  hidden = c(8, 2), # two hidden layers with 4 and 2 neurons respectively
-  threshold = 0.01, 
+  Survived ~ .,
+  data = nn_data_scaled,
+  hidden = c(4, 2), 
+  stepmax = 10000,
+  learningrate = 0.001,
   act.fct = "logistic" 
 )
 # Make predictions on the test data
-nn_pred <- predict(nn_model,as.data.frame(model.matrix(~.,train_df)[,-1]))
+nn_pred <- predict(nn_model,nn_data_scaled)
 
 # Convert the predicted probabilities into binary classification
-nn_pred_class <- ifelse(nn_pred$net.result > 0.5, 1, 0)
+nn_pred_class <- ifelse(nn_pred[,1] > 0.5, 1, 0)
 
 confusionMatrix(as.factor(nn_pred_class), as.factor(test_df$Survived))
 ```
