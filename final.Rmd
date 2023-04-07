@@ -13,7 +13,7 @@ The Titanic disaster is one of the most catastrophic maritime incidents in histo
 
 However, it is evident that certain groups of individuals had a higher chance of surviving than others, irrespective of luck. As a result, we have embarked on a machine learning project that aims to answer the question of which types of passengers were more likely to survive. This will be achieved by analyzing a range of passenger data, including their names, ages, genders, socio-economic classes, and other relevant factors.
 
-The rest of the essay will be arranged in following manner: Then we will use the prior belief to conduct feature engineerig.We will then do some exploratory data analysis to examine some prior belief we have on the correlation between features and the target variable(Survived) . Lastly, we will formulate our model with non-parametric and parametric models to analysis the data.
+The report will be organized as follows: we first discuss the initial steps taken, including data cleaning, feature engineering, and splitting the dataset into training and testing sets. Next, we perform exploratory data analysis to examine our prior beliefs about the correlation between various features and the target variable (Survived). Finally, we employ various machine learning techniques to predict the likelihood of survival for passengers based on different covariates, such as class and gender. By comparing the accuracy rates of these models, we identify the ones that are most effective at predicting survival rates.
 
 ### 1.1 The database
 
@@ -30,6 +30,8 @@ library(ROCR) # Prediction: ROC Curve
 library(class)
 ```
 
+##1 Data importing 
+
 ```{r message=FALSE, warning=FALSE, paged.print=FALSE}
 complete_df<-read_csv("train.csv")
 #test_df<-read_csv("test.csv")
@@ -40,10 +42,11 @@ complete_df<-read_csv("train.csv")
 summary(complete_df)
 ```
 
-There are 1309 observations including 12 features in total in our sample. The detailed explanation for each variable is:
+There are 891 observations including 18 features in total in our sample. The detailed explanation for each variable is:
 
 | Variable Name | Description                       |
 |---------------|-----------------------------------|
+| PassengerId   | Passenger's ID                    |
 | Survived      | Survived (1) or died (0)          |
 | Pclass        | Passenger's class                 |
 | Name          | Passenger's name                  |
@@ -55,10 +58,16 @@ There are 1309 observations including 12 features in total in our sample. The de
 | Fare          | Fare                              |
 | Cabin         | Cabin                             |
 | Embarked      | Port of embarkation               |
+| SizeFamily    | Passenger's family size if any    |
+| ScaleFamily   | Family scale (small,large,single) |
+| Child         | Child (1) or otherwise (0)        |
+| Mother        | Mother (1) or not (0)             |
 
-## 2. data prepossessing
 
-Here we have several prior belief:
+
+## 2. Data prepossessing
+
+Throughout the study we will try to confirm or give new insights on the following prior beliefs:
 
 1.  There might be negative correlation between survive and age
 
@@ -68,7 +77,14 @@ Here we have several prior belief:
 
 4.  People in different class will have different chance for survive
 
+
+However, before starting diving into data analysis, we must standardise some of the variables and deal with missing values. The next two sections will deal with Feauture engeneering and Missing values
+
 ### 2.1 Feature engeneering
+We first manipulate the 'complete_df' data frame by creating new variables. Specifically we are performing the following operations
+- extracting the title from the variable Name, and creating the new variable 'Title'
+- extracting the surname from the variable Name, and creating the new variable 'Surname'
+-
 
 ```{r}
 rare_title <- c('Dona', 'Lady', 'the Countess','Capt', 'Col', 'Don', 
@@ -94,14 +110,16 @@ complete_df<-complete_df|>
 plot(factor(Survived) ~ as.factor(ScaleFamily), data=complete_df)
 ```
 
-### 2.2 Missings
+### 2.2 Missing Values
+
+One of the main tasks in data cleaning is dealing with missing values: the graph below counts for each variables how many missing values there are in our sample (891 observations). We can easily verify that for most of the variables there are no missing values but for Cabin, Age, Embarked, there are missing values that need to be addressed during data cleaning.
 
 ```{r}
 missmap(complete_df, main="Titanic Data - Missings Map",
         col=c("yellow", "black"), legend=FALSE)
 ```
 
-for missing value in embark, there are two missing values, so that we will replace them with the mode
+Regarding the 'Embarked' variable, we have identified two missing values in our sample. To deal with this, we will replace the missing values with the mode of the 'Embarked' variable.
 
 ```{r}
 complete_df<-complete_df|>
@@ -109,7 +127,11 @@ complete_df<-complete_df|>
                             T~Embarked))
 ```
 
-For missing value in age, as there are , we use a predictive imputation in dealing with it
+For the variable Age instead, we have many more missing values which leads us to use another method.
+The method used for imputing the missing values in the Age variable is a predictive imputation based on a random forest model. This method estimates the missing values by filling them in with values based on the available information in the other variables. The model is trained on the available data with complete information, and then used to predict the missing values. The random forest algorithm is chosen because it can exclude certain less useful variables for imputation and can handle non-linear relationships between variables.
+
+In the first block, the imputation is performed, and the complete output is saved as "output". In the second block we check the two histograms to visually compare the distribution of the original data and the imputed data. The two distributions looks pretty similar suggesting that the imputation method has done a good job in preserving the distribution of the original data
+
 
 ```{r}
 # Make variables factors into factors
@@ -137,9 +159,9 @@ complete_df$Age<-output$Age
 ```
 
 ### 2.3 Feature engineering on age
+We graphed our initial assumptions about how survival rates may be linked to various covariates, such as age, gender and passengers' class.
 
-here we have some prior belief that there is correlation between age and gender on survival rate, let's firstly plot it out for checking
-
+We first start by checking the correlation between age and gender on survival rate.
 ```{r}
 complete_df<-complete_df|>
   mutate(Child=case_when(Age<18~1,
@@ -149,15 +171,29 @@ complete_df<-complete_df|>
 ```
 
 ### 2.3 Exploratory Data Analysis
+Upon plotting the survival rate against family size, we observe that there is no clear linear relationship between the two variables: indeed, for small family size (1-4 members) the ratio of those who survived, ranges between 0.30 and 0.7, for medium family size (5-7 members), the ratio drops below 0.3, whereas for large family size (>8) the ratio drops to 0. Hence we can notice that there are high fluctuations not only between the different family size (small, medium, large) but also within each of the family size groups.
 
 ```{r}
 ggplot(complete_df, aes(x = SizeFamily, fill = factor(Survived))) +
-  geom_bar(stat='count', position='dodge') +
+  geom_bar(position = "fill") +
   scale_x_continuous(breaks=c(1:11)) +
   xlab('Family Size') +
-  ylab("Count") +
+  ylab("Proportion") +
   scale_fill_discrete(name = "Survived") + 
-  ggtitle("Family Size vs Survived")
+  ggtitle("Family Size vs Survived") 
+
+```
+In the next two graphs we analyse the relationship between survival rate and age. We first plot the density functions of the two groups (Survived binary variable), and we can notice a fatter right tail (age above 40) for the density function of those passengers who did not survive to the catastrophe, indicating a potential negative relationship between age and survival rate. 
+The second graph instead analyzes still the same relationship but this time by gender: a really interesting insight is that for female passengers the two density distributions tend to overlap, meaning that regardless of the age females were more likely to survive. This insight is perhaps consistent with the priority in evacuation; indeed we can notice that the density distributions for male passengers is highly volatile, mainly due to two opposite forces: physical strength gives an advantage to male but during the evacuation process, women and children were given priority to board the lifeboats, leaving male passengers to board last.
+
+```{r}
+#Survived by age
+ggplot(complete_df, aes(Age,fill = factor(Survived))) +
+  geom_histogram(aes(y=..count..)) +
+  xlab('Age') +
+  ylab("Density") +
+  scale_fill_discrete(name = " Survived") + 
+  ggtitle("Survived by Age")
 ```
 
 ```{r}
@@ -165,6 +201,7 @@ ggplot(complete_df, aes(Age, fill = factor(Survived))) +
   geom_histogram() + 
   facet_grid(.~Sex)
 ```
+Next we plot the relationship between passenger's class and survival rate, and we can verify that the first class had more chances to survive compared to the third one: the impact of class is indicative of the imbalanced socioeconomichierarchy during 1912.
 
 ```{r}
 ggplot(complete_df, aes(x = Pclass, fill = factor(Survived))) +
@@ -184,29 +221,23 @@ ggplot(complete_df, aes(Title,fill = factor(Survived))) +
   scale_fill_discrete(name = " Survived") + 
   ggtitle("Title vs Survived")
 ```
-```{r}
-#Survived by age
-ggplot(complete_df, aes(Age,fill = factor(Survived))) +
-  geom_histogram(aes(y=..count..)) +
-  xlab('Age') +
-  ylab("Density") +
-  scale_fill_discrete(name = " Survived") + 
-  ggtitle("Survived by Age")
-```
-
 
 
 ## 4. Machine Learning Model
 
-### 4.1 Divide data
+Our study aims to predict the survival rates of Titanic passengers by identifying the variables that have the greatest impact on survival. To achieve this, we begin by dividing the data into two datasets: 80% of the sample will be used for training, and the remaining 20% for testing purposes.
 
+### 4.1 Divide data
 ```{r}
 train_index<-sample.int(nrow(complete_df),round(0.8*nrow(complete_df)))
 train_df<-complete_df[train_index,]
 test_df<-complete_df[-train_index,]
 ```
 
+We start by analyzing Random Forest model first: we run the rf_model and store the predicted values. We then plot the ROC curve and the confusion matrix. In the last part of our rf_model we calculate the MDA (Mean Decrease Accuracy) for each variable: the higher the MDA score for a variable, the more important it is in predicting the target variable. In  our specific case as we can see from the last plot, we can state that the social status and the age were the key determinants for the survival.
+
 ### 4.2 Random Forest
+
 
 ```{r}
 # Set a random seed
@@ -220,34 +251,37 @@ rf_model <- randomForest(Survived ~ Pclass + Sex + Age + SibSp + Parch +
 pred_rf<-predict(rf_model,test_df[,-1])
 ```
 
-remember to plot all ROC in a same plot and move this to the end
 
 ```{r}
 prob_pred_RF<-predict(rf_model,test_df[,-2],type='response')
 fitpred_RF = prediction(prob_pred_RF, test_df$Survived)
 fitperf_RF = performance(fitpred_RF,"tpr","fpr")
-plot(fitperf_RF,col="green",lwd=2,main="ROC Curve")
+plot(fitperf_RF,col="green",lwd=2,main="ROC Curve (RF)")
 ```
 
 ```{r}
 confusionMatrix(as.factor(as.numeric(pred_rf>0.5)),as.factor(test_df[,2][[1]]))
 ```
 
-We can show which are the most relevant variables based on Rf model and then see if the same variables are selected even in the other models
-
 ```{r}
-# type 2 : mean decrease in node impurity
-importance(rf_model,type=2)
-
 # type 1 : mean decrease in accuracy
 importance(rf_model,type=1)
+```
+```{r}
+var_imp <- importance(rf_model, type = 1)
+var_imp_df <- data.frame(variable = row.names(var_imp), importance = var_imp[,"%IncMSE"])
+var_imp_df <- var_imp_df[order(var_imp_df$importance, decreasing = TRUE),]
+ggplot(var_imp_df, aes(x = reorder(variable, importance), y = importance)) + 
+   geom_bar(stat = "identity", fill = "#FFB6C1") +
+  coord_flip() +
+  labs(title = "Variable Importance based on %IncMSE", x = "Variable", y = "Importance")
+
 ```
 
 
 ### 4.3 KNN
 
 ```{r}
-
 
 knn_train<-train_df[,-c(1,4,9,11,14,15,17)]|>
   mutate_at(c("Survived","Child","Mother"),as.factor)
@@ -343,7 +377,7 @@ pred_ridge <- predict(ridge_model, type = "coefficients", s = bestlam)
 pred_ridge
 ```
 
-Maybe check if those predicted coefficients are similar to what we obtain in the other models (random forest etc.)
+
 ```{r}
 #Prediction using Ridge
 test_df <- test_df %>%  
