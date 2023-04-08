@@ -260,7 +260,7 @@ pred_rf<-predict(rf_model,test_df[,-1])
 ```{r}
 prob_pred_RF<-predict(rf_model,test_df,type='response')
 label<-test_df[,1]
-fitpred_RF<- prediction(prob_pred_RF,label)
+fitpred_RF<- prediction(prob_pred_RF>0.5,label)
 fitperf_RF = performance(fitpred_RF,"tpr","fpr")
 plot(fitperf_RF,col="green",lwd=2,main="ROC Curve (RF)")
 ```
@@ -290,11 +290,11 @@ ggplot(var_imp_df, aes(x = reorder(variable, importance), y = importance)) +
 ```{r}
 
 
-knn_train<-model.matrix(Survived ~.,data = train_df)[,-1]
-knn_test<-model.matrix(Survived ~.,data = test_df)[,-1]
+train_matrix<-model.matrix(Survived ~.,data = train_df)[,-1]
+test_matrix<-model.matrix(Survived ~.,data = test_df)[,-1]
 acc_test <- numeric()
 for(i in 1:30){
-    predict <- knn(train=knn_train, test=knn_test, cl=train_df[,1][[1]], k=i, prob=T)
+    predict <- knn(train=train_matrix, test=test_matrix, cl=train_df[,1][[1]], k=i, prob=T)
     acc_test[i] <- mean(as.matrix(predict)==test_df[,1])
 }
 #############have not fix yet
@@ -308,7 +308,7 @@ plot(acc)
 ```
 
 ```{r}
-pred_knn<-knn(train=knn_train, test=knn_test, cl=train_df[,1][[1]], k=6)
+pred_knn<-knn(train=knn_train, test=knn_test, cl=train_df[,1][[1]], k=14)
 confusionMatrix(as.factor(pred_knn),as.factor(test_df[,1][[1]]))
 ```
 
@@ -356,7 +356,7 @@ library(glmnet)
 ```{r}
 # Cross Validation for Ridge Regression
 set.seed(200)
-cv.out <- cv.glmnet(knn_train, train_df[,1][[1]], family="binomial",alpha = 0) 
+cv.out <- cv.glmnet(train_matrix, train_df[,1][[1]], family="binomial",alpha = 0) 
 bestlam <- cv.out$lambda.min
 ridge_model <- glmnet(knn_train, train_df[,1][[1]], family="binomial",alpha = 0,lambda =bestlam )
 pred_ridge <- predict(ridge_model, knn_test,type="response")
@@ -375,8 +375,7 @@ library(glmnet)
 # Compute confusion matrix and statistics
 library(caret)
 ridge_pred_binary <- ifelse(pred_ridge> 0.5, 1, 0)
-actual <- test_df$Survived
-confusionMatrix(as.factor(ridge_pred_binary), as.factor(actual))
+confusionMatrix(as.factor(ridge_pred_binary), as.factor(test_df$Survived))
 
 ```
 
@@ -384,7 +383,7 @@ confusionMatrix(as.factor(ridge_pred_binary), as.factor(actual))
 ### 4.5b LASSO regression
 ```{r}
 library(glmnet)
-lasso_model <- glmnet(knn_train, as.numeric(train_df[,1][[1]]), alpha = 1)
+lasso_model <- glmnet(train_matrix, train_df$Survived, alpha = 1)
 par(mfrow=c(1,2))
 plot(lasso_model)
 plot(lasso_model, xvar="lambda")
@@ -394,12 +393,12 @@ Small L1 Norm -> lot of regularization.
 ```{r}
 #Find best lambda through CV
 set.seed(200)
-cv.out <- cv.glmnet(knn_train, train_df[,1][[1]],family="binomial", alpha = 1)  
+cv.out <- cv.glmnet(knn_train, train_df$Survived,family="binomial", alpha = 1)  
 plot(cv.out)
 ```
 ```{r}
 bestlam <- cv.out$lambda.min
-lasso_model <- glmnet(knn_train, as.numeric(train_df[,1][[1]]), family = "binomial",alpha = 1, lambda = bestlam )  
+lasso_model <- glmnet(knn_train, train_df$Survived, family = "binomial",alpha = 1, lambda = bestlam )  
 ```
 
 ```{r}
@@ -434,20 +433,18 @@ legend("bottomright", legend = c("Lasso", "Ridge"), col = c("blue", "red"), lwd 
 ##5 PCA
 
 ```{r}
-x<-complete_df|>
-  select(Survived,Pclass, Sex, Age, SibSp, Parch,Fare, Embarked, Title, ScaleFamily, Child, Mother)|>
-  mutate_at(c("Survived","Child","Mother"),as.factor)
-x<-model.matrix(Survived~.,data=x)
-x<-scale(x[,-1])
-pca_compo<-prcomp(x)
+
+complete_matrix<-model.matrix(Survived~.,data=complete_df)
+complete_matrix<-scale(complete_matrix[,-1])
+pca_compo<-prcomp(complete_matrix)
 summary(pca_compo)
 plot(pca_compo)
 ```
 too further analysis the contribution of different varaibles to PC1 and PC2
 ```{r}
-pca<-x %*% pca_compo$rotation
-train_df_logit<-as.data.frame(cbind(complete_df[train_index,2][[1]],pca[train_index,]))
-logit_model<-glm(as.factor(V1)~.,train_df_logit,family=binomial())
+pca<-complete_matrix %*% pca_compo$rotation
+train_df_logit<-as.data.frame(cbind(train_df$Survived,pca[train_index,]))
+logit_model<-glm(V1~.,train_df_logit,family=binomial())
 pred_logipca<-predict(logit_model,newdata =as.data.frame(pca[-train_index,]),type = "response")
 confusionMatrix(as.factor(as.numeric(pred_logipca>0.5)),as.factor(actual))
 ```
