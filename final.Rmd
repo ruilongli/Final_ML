@@ -272,7 +272,7 @@ importance(rf_model,type=1)
 ```
 ```{r}
 var_imp <- importance(rf_model, type = 1)
-var_imp_df <- data.frame(variable = row.names(var_imp), importance = var_imp[,"%IncMSE"])
+var_imp_df <- data.frame(variable = row.names(var_imp), importance = var_imp[,"MeanDecreaseAccuracy"])
 var_imp_df <- var_imp_df[order(var_imp_df$importance, decreasing = TRUE),]
 ggplot(var_imp_df, aes(x = reorder(variable, importance), y = importance)) + 
    geom_bar(stat = "identity", fill = "#FFB6C1") +
@@ -458,7 +458,7 @@ name_list_vis<-append(name_list_vis,"logit_pca")
 #visualization
 ```{r}
 col <- c("#ed3b3b", "#0099ff")
-par(mfrow=c(5,1))
+par(mfrow=c(2,3))
 for(i in 1:length(name_list_vis)){
 fourfoldplot(vis_list[[i]]$table, color = col, conf.level = 0, margin = 1, main=paste(name_list_vis[i]," (",round(vis_list[[i]]$overall[1]*100),"%)",sep=""))
 }
