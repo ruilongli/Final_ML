@@ -320,14 +320,14 @@ library(nnet)
 library(caret)
 
 # Define the model architecture
-model <- nnet(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother,
+NN_model <- nnet(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother,
               data = train_df,
               size = 5,  # Number of hidden units
               decay = 1e-5,  # Weight decay parameter for regularization
               maxit = 1000)  # Maximum number of iterations
 
 # Make predictions on the test data
-pred <- predict(model, newdata = test_df)
+pred <- predict(NN_model, newdata = test_df)
 
 # Convert the predicted probabilities to binary predictions
 pred_binary <- ifelse(pred > 0.5, 1, 0)
@@ -338,8 +338,35 @@ confusionMatrix(data = factor(pred_binary, levels = c(0, 1)),
 
 ```
 
-Hyperparameter tuning
+Hyperparameter tuning (change the number of hidden units)
 ```{r}
+library(nnet)
+library(caret)
+
+set.seed(123)
+# Define the tuning grid
+tune_grid <- expand.grid(size = c(2, 3, 4, 5, 10), decay = c(1e-5, 1e-4, 1e-3))
+
+
+# Define the model formula
+NN_tuned <- as.formula("Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother")
+
+# Set up the train control
+train_control <- trainControl(method = "cv", number = 5)  #number of folds in the CV
+
+# Train the model using cross-validation
+tuned_model <- train(
+  NN_tuned,
+  data = train_df,
+  method = "nnet",
+  tuneGrid = tune_grid,
+  trControl = train_control,
+  maxit = 1000,
+  linout = TRUE,
+  trace = FALSE)
+
+# Print the results
+tuned_model
 
 ```
 
