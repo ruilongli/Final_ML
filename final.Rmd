@@ -42,7 +42,7 @@ complete_df<-read_csv("train.csv")
 summary(complete_df)
 ```
 
-There are 891 observations including 18 features in total in our sample. The detailed explanation for each variable is:
+There are 891 observations including 13 features in total in our sample. The detailed explanation for each variable is:
 
 | Variable Name | Description                       |
 |---------------|-----------------------------------|
@@ -58,10 +58,8 @@ There are 891 observations including 18 features in total in our sample. The det
 | Fare          | Fare                              |
 | Cabin         | Cabin                             |
 | Embarked      | Port of embarkation               |
-| SizeFamily    | Passenger's family size if any    |
-| ScaleFamily   | Family scale (small,large,single) |
 | Child         | Child (1) or otherwise (0)        |
-| Mother        | Mother (1) or not (0)             |
+
 
 
 
@@ -105,11 +103,6 @@ complete_df<-complete_df|>
                                SizeFamily>4~"large"))|>#family size discrete
   mutate(Family=paste(Surname,SizeFamily,sep="_"))
 
-```
-
-```{r}
-# SHOULD WE INCLUDE THIS PLOT IN THE Exploratory Data Analysis ?
-plot(factor(Survived) ~ as.factor(ScaleFamily), data=complete_df)
 ```
 
 ### 2.2 Missing Values
@@ -173,7 +166,7 @@ complete_df<-complete_df|>
 ```
 
 ### 2.3 Exploratory Data Analysis
-Upon plotting the survival rate against family size, we observe that there is no clear linear relationship between the two variables: indeed, for small family size (1-4 members) the ratio of those who survived, ranges between 0.30 and 0.7, for medium family size (5-7 members), the ratio drops below 0.3, whereas for large family size (>8) the ratio drops to 0. Hence we can notice that there are high fluctuations not only between the different family size (small, medium, large) but also within each of the family size groups.
+Upon plotting the survival rate against family size, we observe that there is no clear linear relationship between the two variables: indeed, for small family size (1-4 members) the ratio of those who survived, ranges between 0.30 and 0.6, for medium family size (5-7 members), the ratio drops below 0.3, whereas for large family size (>8) the ratio drops to 0. Hence we can notice that there are high fluctuations not only between the different family size (small, medium, large) but also within each of the family size groups.
 
 ```{r}
 ggplot(complete_df, aes(x = SizeFamily, fill = factor(Survived))) +
@@ -185,6 +178,10 @@ ggplot(complete_df, aes(x = SizeFamily, fill = factor(Survived))) +
   ggtitle("Family Size vs Survived") 
 
 ```
+```{r}
+plot(factor(Survived) ~ as.factor(ScaleFamily), data=complete_df)
+```
+
 In the next two graphs we analyse the relationship between survival rate and age. We first plot the density functions of the two groups (Survived binary variable), and we can notice a fatter right tail (age above 40) for the density function of those passengers who did not survive to the catastrophe, indicating a potential negative relationship between age and survival rate. 
 The second graph instead analyzes still the same relationship but this time by gender: a really interesting insight is that for female passengers the two density distributions tend to overlap, meaning that regardless of the age females were more likely to survive. This insight is perhaps consistent with the priority in evacuation; indeed we can notice that the density distributions for male passengers is highly volatile, mainly due to two opposite forces: physical strength gives an advantage to male but during the evacuation process, women and children were given priority to board the lifeboats, leaving male passengers to board last.
 
