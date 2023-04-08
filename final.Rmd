@@ -242,7 +242,7 @@ train_df<-complete_df[train_index,]
 test_df<-complete_df[-train_index,]
 ```
 
-We start by analyzing Random Forest model first: we run the rf_model and store the predicted values. We then plot the ROC curve and the confusion matrix. In the last part of our rf_model we calculate the MDA (Mean Decrease Accuracy) for each variable: the higher the MDA score for a variable, the more important it is in predicting the target variable. In  our specific case as we can see from the last plot, we can state that the social status and the age were the key determinants for the survival.
+In the following blocks, we run the following models: Random Forest, KNN, Neural Network, Ridge, Lasso, and PCA. For each model, we compute the confusion matrix and its accuracy rate. Finally, we compare the accuracy rates of all the methods.
 
 ### 4.2 Random Forest
 
@@ -319,7 +319,6 @@ name_list_vis<-append(name_list_vis,"knn")
 ```
 
 ### 4.4 Neural Network
-problem with NN
 
 ```{r}
 library(nnet)
@@ -328,7 +327,7 @@ library(caret)
 # Define the model architecture
 NN_model <- nnet(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother,
               data = train_df,
-              size = 5,  # Number of hidden units
+              size = 3,  # Number of hidden units (tuned)
               decay = 1e-5,  # Weight decay parameter for regularization
               maxit = 1000)  # Maximum number of iterations
 
@@ -340,10 +339,15 @@ pred_binary <- ifelse(pred > 0.5, 1, 0)
 
 # Create a confusion matrix
 confusionMatrix(data = factor(pred_binary, levels = c(0, 1)), 
+<<<<<<< HEAD
                 reference = factor(test_df$Survived, levels = c(0, 1)))
 vis_list[[3]]<-confusionMatrix(data = factor(pred_binary, levels = c(0, 1)), 
                 reference = factor(test_df$Survived, levels = c(0, 1)))
 name_list_vis<-append(name_list_vis,"NN")
+=======
+                      reference = factor(test_df$Survived, levels = c(0, 1)))
+
+>>>>>>> 0bb44a3c7bbdc766c761e3fc803dfe5635b2f399
 
 ```
 
@@ -378,8 +382,6 @@ tuned_model <- train(
 tuned_model
 
 ```
-
-
 
 ### 4.5a Ridge regression
 
@@ -501,6 +503,8 @@ for(i in 1:length(name_list_vis)){
 fourfoldplot(vis_list[[i]]$table, color = col, conf.level = 0, margin = 1, main=paste(name_list_vis[i]," (",round(vis_list[[i]]$overall[1]*100),"%)",sep=""))
 }
 ```
+
+
 
 
 
