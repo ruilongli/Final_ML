@@ -233,7 +233,7 @@ complete_df<-complete_df|>
 ```
 
 
-Our study aims to predict the survival rates of Titanic passengers by identifying the variables that have the greatest impact on survival. To achieve this, we begin by dividing the data into two datasets: 80% of the sample will be used for training, and the remaining 20% for testing purposes.
+Our study aims at predicting the survival rates of Titanic passengers by identifying the variables that have the greatest impact on survival. To achieve this, we begin by dividing the data into two datasets: 80% of the sample will be used for training, and the remaining 20% for testing purposes.
 
 ### 4.1 Divide data
 ```{r}
@@ -316,27 +316,33 @@ confusionMatrix(as.factor(pred_knn),as.factor(test_df[,1][[1]]))
 problem with NN
 
 ```{r}
-library(neuralnet)
+library(nnet)
+library(caret)
 
-nn_data_scaled <- 
-nn_model <- neuralnet(
-  Survived ~ .,
-  data = nn_data_scaled,
-  hidden = c(4, 2), 
-  stepmax = 10000,
-  learningrate = 0.001,
-  act.fct = "logistic" 
-)
+# Define the model architecture
+model <- nnet(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother,
+              data = train_df,
+              size = 5,  # Number of hidden units
+              decay = 1e-5,  # Weight decay parameter for regularization
+              maxit = 1000)  # Maximum number of iterations
+
 # Make predictions on the test data
-nn_pred <- predict(nn_model,nn_data_scaled)
+pred <- predict(model, newdata = test_df)
 
-# Convert the predicted probabilities into binary classification
-nn_pred_class <- ifelse(nn_pred[,1] > 0.5, 1, 0)
+# Convert the predicted probabilities to binary predictions
+pred_binary <- ifelse(pred > 0.5, 1, 0)
 
-confusionMatrix(as.factor(nn_pred_class), as.factor(test_df$Survived))
+# Create a confusion matrix
+confusionMatrix(data = factor(pred_binary, levels = c(0, 1)), 
+                reference = factor(test_df$Survived, levels = c(0, 1)))
+
 ```
 
-things need to be done: Write a good story, using NN, Lasso_logistic and use PCA to reduce the dimension 
+Hyperparameter tuning
+```{r}
+
+```
+
 
 
 ### 4.5a Ridge regression
