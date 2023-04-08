@@ -322,7 +322,7 @@ library(caret)
 # Define the model architecture
 NN_model <- nnet(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother,
               data = train_df,
-              size = 5,  # Number of hidden units
+              size = 3,  # Number of hidden units
               decay = 1e-5,  # Weight decay parameter for regularization
               maxit = 1000)  # Maximum number of iterations
 
@@ -369,8 +369,6 @@ tuned_model <- train(
 tuned_model
 
 ```
-
-
 
 ### 4.5a Ridge regression
 
