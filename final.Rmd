@@ -254,13 +254,6 @@ pred_rf<-predict(rf_model,test_df[,-1])
 ```
 
 
-```{r}
-prob_pred_RF<-predict(rf_model,test_df,type='response')
-label<-test_df[,1]
-fitpred_RF<- prediction(prob_pred_RF>0.5,label)
-fitperf_RF = performance(fitpred_RF,"tpr","fpr")
-plot(fitperf_RF,col="green",lwd=2,main="ROC Curve (RF)")
-```
 
 ```{r}
 vis_list<-list()
@@ -276,7 +269,7 @@ importance(rf_model,type=1)
 ```
 ```{r}
 var_imp <- importance(rf_model, type = 1)
-var_imp_df <- data.frame(variable = row.names(var_imp), importance = var_imp[,"%IncMSE"])
+var_imp_df <- data.frame(variable = row.names(var_imp), importance = var_imp[,"MeanDecreaseAccuracy"])
 var_imp_df <- var_imp_df[order(var_imp_df$importance, decreasing = TRUE),]
 ggplot(var_imp_df, aes(x = reorder(variable, importance), y = importance)) + 
    geom_bar(stat = "identity", fill = "#FFB6C1") +
@@ -344,38 +337,6 @@ name_list_vis<-append(name_list_vis,"NN")
 
 ```
 
-Hyperparameter tuning (change the number of hidden units)
-```{r}
-library(nnet)
-library(caret)
-
-set.seed(123)
-# Define the tuning grid
-tune_grid <- expand.grid(size = c(2, 3, 4, 5, 10), decay = c(1e-5, 1e-4, 1e-3))
-
-
-# Define the model formula
-NN_tuned <- as.formula("Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother")
-
-# Set up the train control
-train_control <- trainControl(method = "cv", number = 5)  #number of folds in the CV
-
-# Train the model using cross-validation
-tuned_model <- train(
-  NN_tuned,
-  data = train_df,
-  method = "nnet",
-  tuneGrid = tune_grid,
-  trControl = train_control,
-  maxit = 1000,
-  linout = TRUE,
-  trace = FALSE)
-
-# Print the results
-pred_tuneNN<-predict(tuned_model,test_df[,-1])
-confusionMatrix(as.factor(as.numeric(pred_tuneNN>0/5)),as.factor(test_df$Survived))
-
-```
 
 ### 4.5a Ridge regression
 
@@ -482,6 +443,8 @@ train_df_logit<-as.data.frame(cbind(train_df$Survived,pca[train_index,]))
 logit_model<-glm(V1~.,train_df_logit,family=binomial())
 pred_logipca<-predict(logit_model,newdata =as.data.frame(pca[-train_index,]),type = "response")
 confusionMatrix(as.factor(as.numeric(pred_logipca>0.5)),as.factor(actual))
+vis_list[[6]]<-confusionMatrix(as.factor(as.numeric(pred_logipca>0.5)),as.factor(actual))
+name_list_vis<-append(name_list_vis,"logit_pca")
 ```
 
 
@@ -492,7 +455,7 @@ confusionMatrix(as.factor(as.numeric(pred_logipca>0.5)),as.factor(actual))
 #visualization
 ```{r}
 col <- c("#ed3b3b", "#0099ff")
-par(mfrow=c(5,1))
+par(mfrow=c(2,3))
 for(i in 1:length(name_list_vis)){
 fourfoldplot(vis_list[[i]]$table, color = col, conf.level = 0, margin = 1, main=paste(name_list_vis[i]," (",round(vis_list[[i]]$overall[1]*100),"%)",sep=""))
 }
