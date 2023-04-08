@@ -313,7 +313,6 @@ confusionMatrix(as.factor(pred_knn),as.factor(test_df[,1][[1]]))
 ```
 
 ### 4.4 Neural Network
-problem with NN
 
 ```{r}
 library(nnet)
@@ -322,7 +321,7 @@ library(caret)
 # Define the model architecture
 NN_model <- nnet(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother,
               data = train_df,
-              size = 3,  # Number of hidden units
+              size = 3,  # Number of hidden units (tuned)
               decay = 1e-5,  # Weight decay parameter for regularization
               maxit = 1000)  # Maximum number of iterations
 
@@ -334,7 +333,8 @@ pred_binary <- ifelse(pred > 0.5, 1, 0)
 
 # Create a confusion matrix
 confusionMatrix(data = factor(pred_binary, levels = c(0, 1)), 
-                reference = factor(test_df$Survived, levels = c(0, 1)))
+                      reference = factor(test_df$Survived, levels = c(0, 1)))
+
 
 ```
 
@@ -474,6 +474,11 @@ pred_logipca<-predict(logit_model,newdata =as.data.frame(pca[-train_index,]),typ
 confusionMatrix(as.factor(as.numeric(pred_logipca>0.5)),as.factor(actual))
 ```
 
+
+```{r}
+
+
+```
 
 
 
