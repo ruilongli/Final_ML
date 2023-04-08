@@ -242,7 +242,7 @@ train_df<-complete_df[train_index,]
 test_df<-complete_df[-train_index,]
 ```
 
-We start by analyzing Random Forest model first: we run the rf_model and store the predicted values. We then plot the ROC curve and the confusion matrix. In the last part of our rf_model we calculate the MDA (Mean Decrease Accuracy) for each variable: the higher the MDA score for a variable, the more important it is in predicting the target variable. In  our specific case as we can see from the last plot, we can state that the social status and the age were the key determinants for the survival.
+In the following blocks, we run the following models: Random Forest, KNN, Neural Network, Ridge, Lasso, and PCA. For each model, we compute the confusion matrix and its accuracy rate. Finally, we compare the accuracy rates of all the methods.
 
 ### 4.2 Random Forest
 
@@ -475,10 +475,7 @@ confusionMatrix(as.factor(as.numeric(pred_logipca>0.5)),as.factor(actual))
 ```
 
 
-```{r}
 
-
-```
 
 
 
