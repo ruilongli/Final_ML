@@ -161,10 +161,7 @@ complete_df<-complete_df|>
 ### 2.3 Exploratory Data Analysis
 <<<<<<< HEAD
 Upon plotting the survival rate against family size, we observe that there is no clear linear relationship between the two variables: indeed, for small family size (1-4 members) the ratio of those who survived, ranges between 0.30 and 0.6, for medium family size (5-7 members), the ratio drops below 0.3, whereas for large family size (>8) the ratio drops to 0. Hence we can notice that there are high fluctuations not only between the different family size (small, medium, large) but also within each of the family size groups.
-=======
 
-Upon plotting the survival rate against family size, we observe that there is no clear linear relationship between the two variables: indeed, for small family size (1-4 members) the ratio of those who survived, ranges between 0.30 and 0.7, for medium family size (5-7 members), the ratio drops below 0.3, whereas for large family size (\>8) the ratio drops to 0. Hence we can notice that there are high fluctuations not only between the different family size (small, medium, large) but also within each of the family size groups.
->>>>>>> 4deaa903bbeee0c7281d4d4596e79aea68bb9f56
 
 ```{r}
 ggplot(complete_df, aes(x = SizeFamily, fill = factor(Survived))) +
@@ -183,10 +180,7 @@ plot(factor(Survived) ~ as.factor(ScaleFamily), data=complete_df)
 
 In the next two graphs we analyse the relationship between survival rate and age. We first plot the density functions of the two groups (Survived binary variable), and we can notice a fatter right tail (age above 40) for the density function of those passengers who did not survive to the catastrophe, indicating a potential negative relationship between age and survival rate. 
 The second graph instead analyzes still the same relationship but this time by gender: a really interesting insight is that for female passengers the two density distributions tend to overlap, meaning that regardless of the age females were more likely to survive. This insight is perhaps consistent with the priority in evacuation; indeed we can notice that the density distributions for male passengers is highly volatile, mainly due to two opposite forces: physical strength gives an advantage to male but during the evacuation process, women and children were given priority to board the lifeboats, leaving male passengers to board last.
-=======
 
-In the next two graphs we analyse the relationship between survival rate and age. We first plot the density functions of the two groups (Survived binary variable), and we can notice a fatter right tail (age above 40) for the density function of those passengers who did not survive to the catastrophe, indicating a potential negative relationship between age and survival rate. The second graph instead analyzes still the same relationship but this time by gender: a really interesting insight is that for female passengers the two density distributions tend to overlap, meaning that regardless of the age females were more likely to survive. This insight is perhaps consistent with the priority in evacuation; indeed we can notice that the density distributions for male passengers is highly volatile, mainly due to two opposite forces: physical strength gives an advantage to male but during the evacuation process, women and children were given priority to board the lifeboats, leaving male passengers to board last.
->>>>>>> 4deaa903bbeee0c7281d4d4596e79aea68bb9f56
 
 ```{r}
 #Survived by age
@@ -303,7 +297,7 @@ plot(acc)
 ```
 
 ```{r}
-pred_knn<-knn(train=scale(train_matrix), test=scale(test_matrix), cl=train_matrix[,1], k=10)
+pred_knn<-knn(train=scale(train_matrix), test=scale(test_matrix), cl=train_matrix[,1], k=12)
 confusionMatrix(as.factor(pred_knn),as.factor(test_df[,1][[1]]))
 vis_list[[2]]<-confusionMatrix(as.factor(pred_knn),as.factor(test_df[,1][[1]]))
 name_list_vis<-append(name_list_vis,"knn")
@@ -481,6 +475,15 @@ Estonia_data<-Estonia_data|>
 ```
 
 ```{r}
-rf_model <- randomForest(as.factor(Survived) ~ Country+Lastname+Sex+ScaleFamily+Age,data = Estonia_data,importance=TRUE )
+#Survived by age
+ggplot(Estonia_data, aes(Age, fill = factor(Survived))) + 
+  geom_histogram() + 
+  facet_grid(.~Sex)
+```
+```{r}
+rf_model <- randomForest(as.factor(Survived) ~ Country+Sex+Category+Age,data = Estonia_data,importance=TRUE )
 importance(rf_model,type=1)
 ```
+
+
+
