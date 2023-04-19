@@ -42,7 +42,7 @@ complete_df<-read_csv("train.csv")
 summary(complete_df)
 ```
 
-There are 891 observations including 13 features in total in our sample. The detailed explanation for each variable is:
+There are 891 observations including 12 features in total in our sample. The detailed explanation for each variable is:
 
 | Variable Name | Description                       |
 |---------------|-----------------------------------|
@@ -58,7 +58,7 @@ There are 891 observations including 13 features in total in our sample. The det
 | Fare          | Fare                              |
 | Cabin         | Cabin                             |
 | Embarked      | Port of embarkation               |
-| Child         | Child (1) or otherwise (0)        |
+
 
 
 ## 2. Data prepossessing
