@@ -30,7 +30,7 @@ library(ROCR) # Prediction: ROC Curve
 library(class)
 ```
 
-##1 Data importing 
+##1 Data importing
 
 ```{r message=FALSE, warning=FALSE, paged.print=FALSE}
 complete_df<-read_csv("train.csv")
@@ -61,8 +61,6 @@ There are 891 observations including 13 features in total in our sample. The det
 | Child         | Child (1) or otherwise (0)        |
 
 
-
-
 ## 2. Data prepossessing
 
 Throughout the study we will try to confirm or give new insights on the following prior beliefs:
@@ -75,16 +73,11 @@ Throughout the study we will try to confirm or give new insights on the followin
 
 4.  People in different class will have different chance for survive
 
-
 However, before starting diving into data analysis, we must standardise some of the variables and deal with missing values. The next two sections will deal with Feauture engeneering and Missing values
 
 ### 2.1 Feature engeneering
-We first manipulate the 'complete_df' data frame by creating new variables. Specifically we are performing the following operations:
-- extracting the title from the variable Name, and creating the new variable 'Title'
-- extracting the surname from the variable Name, and creating the new variable 'Surname'
-- creating a new variable called 'SizeFamily'
-- creating a new variable called ScaleFamily by categorizing SizeFamily into "Single", "small", or "large" based on the number of family members
-- creating a new variable called Family by concatenating Surname and SizeFamily
+
+We first manipulate the 'complete_df' data frame by creating new variables. Specifically we are performing the following operations: - extracting the title from the variable Name, and creating the new variable 'Title' - extracting the surname from the variable Name, and creating the new variable 'Surname' - creating a new variable called 'SizeFamily' - creating a new variable called ScaleFamily by categorizing SizeFamily into "Single", "small", or "large" based on the number of family members - creating a new variable called Family by concatenating Surname and SizeFamily
 
 ```{r}
 rare_title <- c('Dona', 'Lady', 'the Countess','Capt', 'Col', 'Don', 
@@ -92,7 +85,7 @@ rare_title <- c('Dona', 'Lady', 'the Countess','Capt', 'Col', 'Don',
 complete_df<-complete_df|>
   mutate(Title=gsub('(.*, )|(\\..*)', '',Name))|># get title from name.
   #change some non-standard or rare title
-  mutate(Title=case_when(Title %in% c("Mlle","MS")~"Miss",
+  mutate(Title=case_when(Title %in% c("Mlle","Ms")~"Miss",
                          Title=="Mme"~"Mrs",
                          Title %in% rare_title ~ "RareTitle",
                          T~Title))|>
@@ -122,11 +115,9 @@ complete_df<-complete_df|>
                             T~Embarked))
 ```
 
-For the variable Age instead, we have many more missing values which leads us to use another method.
-The method used for imputing the missing values in the Age variable is a predictive imputation based on a random forest model. This method estimates the missing values by filling them in with values based on the available information in the other variables. The model is trained on the available data with complete information, and then used to predict the missing values. The random forest algorithm is chosen because it can exclude certain less useful variables for imputation and can handle non-linear relationships between variables.
+For the variable Age instead, we have many more missing values which leads us to use another method. The method used for imputing the missing values in the Age variable is a predictive imputation based on a random forest model. This method estimates the missing values by filling them in with values based on the available information in the other variables. The model is trained on the available data with complete information, and then used to predict the missing values. The random forest algorithm is chosen because it can exclude certain less useful variables for imputation and can handle non-linear relationships between variables.
 
 In the first block, the imputation is performed, and the complete output is saved as "output". In the second block we check the two histograms to visually compare the distribution of the original data and the imputed data. The two distributions looks pretty similar suggesting that the imputation method has done a good job in preserving the distribution of the original data
-
 
 ```{r}
 # Make variables factors into factors
@@ -154,9 +145,11 @@ complete_df$Age<-age_mice$Age
 ```
 
 ### 2.3 Feature engineering on age
+
 We graphed our initial assumptions about how survival rates may be linked to various covariates, such as age, gender and passengers' class.
 
 We first start by checking the correlation between age and gender on survival rate.
+
 ```{r}
 complete_df<-complete_df|>
   mutate(Child=case_when(Age<18~1,
@@ -166,7 +159,12 @@ complete_df<-complete_df|>
 ```
 
 ### 2.3 Exploratory Data Analysis
+<<<<<<< HEAD
 Upon plotting the survival rate against family size, we observe that there is no clear linear relationship between the two variables: indeed, for small family size (1-4 members) the ratio of those who survived, ranges between 0.30 and 0.6, for medium family size (5-7 members), the ratio drops below 0.3, whereas for large family size (>8) the ratio drops to 0. Hence we can notice that there are high fluctuations not only between the different family size (small, medium, large) but also within each of the family size groups.
+=======
+
+Upon plotting the survival rate against family size, we observe that there is no clear linear relationship between the two variables: indeed, for small family size (1-4 members) the ratio of those who survived, ranges between 0.30 and 0.7, for medium family size (5-7 members), the ratio drops below 0.3, whereas for large family size (\>8) the ratio drops to 0. Hence we can notice that there are high fluctuations not only between the different family size (small, medium, large) but also within each of the family size groups.
+>>>>>>> 4deaa903bbeee0c7281d4d4596e79aea68bb9f56
 
 ```{r}
 ggplot(complete_df, aes(x = SizeFamily, fill = factor(Survived))) +
@@ -178,12 +176,17 @@ ggplot(complete_df, aes(x = SizeFamily, fill = factor(Survived))) +
   ggtitle("Family Size vs Survived") 
 
 ```
+<<<<<<< HEAD
 ```{r}
 plot(factor(Survived) ~ as.factor(ScaleFamily), data=complete_df)
 ```
 
 In the next two graphs we analyse the relationship between survival rate and age. We first plot the density functions of the two groups (Survived binary variable), and we can notice a fatter right tail (age above 40) for the density function of those passengers who did not survive to the catastrophe, indicating a potential negative relationship between age and survival rate. 
 The second graph instead analyzes still the same relationship but this time by gender: a really interesting insight is that for female passengers the two density distributions tend to overlap, meaning that regardless of the age females were more likely to survive. This insight is perhaps consistent with the priority in evacuation; indeed we can notice that the density distributions for male passengers is highly volatile, mainly due to two opposite forces: physical strength gives an advantage to male but during the evacuation process, women and children were given priority to board the lifeboats, leaving male passengers to board last.
+=======
+
+In the next two graphs we analyse the relationship between survival rate and age. We first plot the density functions of the two groups (Survived binary variable), and we can notice a fatter right tail (age above 40) for the density function of those passengers who did not survive to the catastrophe, indicating a potential negative relationship between age and survival rate. The second graph instead analyzes still the same relationship but this time by gender: a really interesting insight is that for female passengers the two density distributions tend to overlap, meaning that regardless of the age females were more likely to survive. This insight is perhaps consistent with the priority in evacuation; indeed we can notice that the density distributions for male passengers is highly volatile, mainly due to two opposite forces: physical strength gives an advantage to male but during the evacuation process, women and children were given priority to board the lifeboats, leaving male passengers to board last.
+>>>>>>> 4deaa903bbeee0c7281d4d4596e79aea68bb9f56
 
 ```{r}
 #Survived by age
@@ -200,6 +203,7 @@ ggplot(complete_df, aes(Age, fill = factor(Survived))) +
   geom_histogram() + 
   facet_grid(.~Sex)
 ```
+
 Next we plot the relationship between passenger's class and survival rate, and we can verify that the first class had more chances to survive compared to the third one: the impact of class is indicative of the imbalanced socioeconomichierarchy during 1912.
 
 ```{r}
@@ -221,18 +225,18 @@ ggplot(complete_df, aes(Title,fill = factor(Survived))) +
   ggtitle("Title vs Survived")
 ```
 
-
 ## 4. Machine Learning Model
+
 ```{r}
 complete_df<-complete_df|>
   mutate_at(c("Pclass","Sex","Embarked","Title","ScaleFamily","Child","Mother"),as.factor)|>
-  select(Survived,Pclass,Sex,Age,SibSp,Parch,Fare,Embarked,Title,ScaleFamily,Child,Mother)
+  select(Survived,Pclass,Age,SibSp,Parch,Fare,Embarked,Title,ScaleFamily,Child,Mother)
 ```
-
 
 Our study aims at predicting the survival rates of Titanic passengers by identifying the variables that have the greatest impact on survival. To achieve this, we begin by dividing the data into two datasets: 80% of the sample will be used for training, and the remaining 20% for testing purposes.
 
 ### 4.1 Divide data
+
 ```{r}
 train_index<-sample.int(nrow(complete_df),round(0.8*nrow(complete_df)))
 train_df<-complete_df[train_index,]
@@ -243,7 +247,6 @@ In the following blocks, we run the following models: Random Forest, KNN, Neural
 
 ### 4.2 Random Forest
 
-
 ```{r}
 # Set a random seed
 set.seed(754)
@@ -252,8 +255,6 @@ set.seed(754)
 rf_model <- randomForest(as.factor(Survived) ~ .,data = train_df,importance=TRUE )
 pred_rf<-predict(rf_model,test_df[,-1])
 ```
-
-
 
 ```{r}
 vis_list<-list()
@@ -267,6 +268,7 @@ confusionMatrix(as.factor(pred_rf),as.factor(test_df$Survived))
 # type 1 : mean decrease in accuracy
 importance(rf_model,type=1)
 ```
+
 ```{r}
 var_imp <- importance(rf_model, type = 1)
 var_imp_df <- data.frame(variable = row.names(var_imp), importance = var_imp[,"MeanDecreaseAccuracy"])
@@ -278,7 +280,6 @@ ggplot(var_imp_df, aes(x = reorder(variable, importance), y = importance)) +
 
 ```
 
-
 ### 4.3 KNN
 
 ```{r}
@@ -288,7 +289,7 @@ train_matrix<-model.matrix(Survived ~.,data = train_df)[,-1]
 test_matrix<-model.matrix(Survived ~.,data = test_df)[,-1]
 acc_test <- numeric()
 for(i in 1:30){
-    predict <- knn(train=train_matrix, test=test_matrix, cl=train_df[,1][[1]], k=i, prob=T)
+    predict <- knn(train=scale(train_matrix), test=scale(test_matrix), cl=train_df[,1][[1]], k=i, prob=T)
     acc_test[i] <- mean(as.matrix(predict)==test_df[,1])
 }
 #############have not fix yet
@@ -302,7 +303,7 @@ plot(acc)
 ```
 
 ```{r}
-pred_knn<-knn(train=knn_train, test=knn_test, cl=train_df[,1][[1]], k=14)
+pred_knn<-knn(train=scale(train_matrix), test=scale(test_matrix), cl=train_matrix[,1], k=10)
 confusionMatrix(as.factor(pred_knn),as.factor(test_df[,1][[1]]))
 vis_list[[2]]<-confusionMatrix(as.factor(pred_knn),as.factor(test_df[,1][[1]]))
 name_list_vis<-append(name_list_vis,"knn")
@@ -313,9 +314,9 @@ name_list_vis<-append(name_list_vis,"knn")
 ```{r}
 library(nnet)
 library(caret)
-
+set.seed(1235)
 # Define the model architecture
-NN_model <- nnet(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked + Title + ScaleFamily + Child + Mother,
+NN_model <- nnet(Survived ~ Pclass  + scale(Age) + SibSp + Parch + scale(Fare) + Embarked + Title + ScaleFamily + Child + Mother,
               data = train_df,
               size = 3,  # Number of hidden units (tuned)
               decay = 1e-5,  # Weight decay parameter for regularization
@@ -337,7 +338,6 @@ name_list_vis<-append(name_list_vis,"NN")
 
 ```
 
-
 ### 4.5a Ridge regression
 
 ```{r}
@@ -351,16 +351,16 @@ library(glmnet)
 set.seed(200)
 cv.out <- cv.glmnet(train_matrix, train_df[,1][[1]], family="binomial",alpha = 0) 
 bestlam <- cv.out$lambda.min
-ridge_model <- glmnet(knn_train, train_df[,1][[1]], family="binomial",alpha = 0,lambda =bestlam )
-pred_ridge <- predict(ridge_model, knn_test,type="response")
+ridge_model <- glmnet(train_matrix, train_df[,1][[1]], family="binomial",alpha = 0,lambda =bestlam )
+pred_ridge <- predict(ridge_model,test_matrix,type="response")
 ```
+
 ```{r}
 #run Ridge using the best lambda selected from CV
 library(glmnet)
 
 
 ```
-
 
 ```{r}
 
@@ -374,8 +374,8 @@ name_list_vis<-append(name_list_vis,"logit_ridge")
 
 ```
 
-
 ### 4.5b LASSO regression
+
 ```{r}
 library(glmnet)
 lasso_model <- glmnet(train_matrix, train_df$Survived, alpha = 1)
@@ -383,22 +383,28 @@ par(mfrow=c(1,2))
 plot(lasso_model)
 plot(lasso_model, xvar="lambda")
 ```
-Small L1 Norm -> lot of regularization.
+
+Small L1 Norm -\> lot of regularization.
 
 ```{r}
 #Find best lambda through CV
 set.seed(200)
-cv.out <- cv.glmnet(knn_train, train_df$Survived,family="binomial", alpha = 1)  
+cv.out <- cv.glmnet(train_matrix, train_df$Survived,family="binomial", alpha = 1)  
 plot(cv.out)
 ```
+
 ```{r}
 bestlam <- cv.out$lambda.min
-lasso_model <- glmnet(knn_train, train_df$Survived, family = "binomial",alpha = 1, lambda = bestlam )  
+lasso_model <- glmnet(train_matrix, train_df$Survived, family = "binomial",alpha = 1, lambda = bestlam )  
+```
+
+```{r}
+coef(lasso_model)
 ```
 
 ```{r}
 #Prediction using Lasso
-lasso_pred <- predict(lasso_model, newx = knn_test,type="response")
+lasso_pred <- predict(lasso_model, newx = test_matrix,type="response")
 
 # Compute confusion matrix and statistics
 library(caret)
@@ -426,6 +432,7 @@ plot(ridge_perf_obj, add = TRUE, col = "red")
 legend("bottomright", legend = c("Lasso", "Ridge"), col = c("blue", "red"), lwd = 2)
 
 ```
+
 ##5 PCA
 
 ```{r}
@@ -436,7 +443,9 @@ pca_compo<-prcomp(complete_matrix)
 summary(pca_compo)
 plot(pca_compo)
 ```
+
 too further analysis the contribution of different varaibles to PC1 and PC2
+
 ```{r}
 pca<-complete_matrix %*% pca_compo$rotation
 train_df_logit<-as.data.frame(cbind(train_df$Survived,pca[train_index,]))
@@ -447,12 +456,8 @@ vis_list[[6]]<-confusionMatrix(as.factor(as.numeric(pred_logipca>0.5)),as.factor
 name_list_vis<-append(name_list_vis,"logit_pca")
 ```
 
-
-
-
-
-
 #visualization
+
 ```{r}
 col <- c("#ed3b3b", "#0099ff")
 par(mfrow=c(2,3))
@@ -461,14 +466,21 @@ fourfoldplot(vis_list[[i]]$table, color = col, conf.level = 0, margin = 1, main=
 }
 ```
 
+5.Is this results still hold on other disaster event?
 
+```{r}
+Estonia_data<-read.csv("Estonia.csv")
+Estonia_data<-Estonia_data|>
+  mutate_at(c("Country","Category","Sex"),as.factor)|>
+  group_by(Lastname)|>
+  mutate(SizeFamily=n())|>
+  ungroup()|>
+   mutate(ScaleFamily=case_when(SizeFamily==1~"Single",
+                               SizeFamily>1&SizeFamily<5~"small",
+                               SizeFamily>4~"large"))#family size discrete
+```
 
-
-
-
-
-
-
-
-
-
+```{r}
+rf_model <- randomForest(as.factor(Survived) ~ Country+Lastname+Sex+ScaleFamily+Age,data = Estonia_data,importance=TRUE )
+importance(rf_model,type=1)
+```
